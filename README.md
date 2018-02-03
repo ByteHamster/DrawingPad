@@ -1,6 +1,6 @@
 # DrawingPad
-Simple drawing application that can be controlled from the command line
+Simple drawing application that can be controlled from the command line. Saves automatically when closing the window.
 
-You need JavaFx to execute: `java -jar drawingPad.jar output.png`
+    java -jar drawingPad.jar output.png
 
-![Screenshot](screenshot.png | width=300)
+<img src="https://github.com/ByteHamster/DrawingPad/blob/master/screenshot.png" width="400">
