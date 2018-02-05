@@ -153,6 +153,7 @@ public class Main extends Application {
     public void stop() {
         try {
             BufferedImage image = SwingFXUtils.fromFXImage(canvas.snapshot(null, null), null);
+            image = ImageUtils.trim(image);
             ImageIO.write(image, "png", outputFile);
         } catch (IOException e) {
             e.printStackTrace();
