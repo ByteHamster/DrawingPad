@@ -7,6 +7,9 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
@@ -24,6 +27,8 @@ public class Main extends Application {
     private GraphicsContext graphicsContext;
     private Canvas canvas;
     private static File outputFile;
+    private final KeyCombination KEY_UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination KEY_SAVE = new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN);
 
     @Override
     public void start(Stage primaryStage) {
@@ -32,6 +37,14 @@ public class Main extends Application {
         primaryStage.setTitle("DrawingPad");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        scene.setOnKeyPressed(keyEvent -> {
+            if (KEY_UNDO.match(keyEvent)) {
+                undo();
+            } else if (KEY_SAVE.match(keyEvent)) {
+                Platform.exit();
+            }
+        });
 
         Platform.runLater(() -> addCanvas(root));
     }
@@ -93,8 +106,7 @@ public class Main extends Application {
                         //if (!currentPath.first().equals(currentPath.last())) {
                         //    return;
                         //}
-                        graphicsContext.drawImage(history.last(), 0, 0);
-                        history.removeLast();
+                        undo();
                         return;
                     }
 
@@ -102,6 +114,13 @@ public class Main extends Application {
                     checkLine();
                 });
         root.getChildren().add(canvas);
+    }
+
+    private void undo() {
+        if (!history.isEmpty()) {
+            graphicsContext.drawImage(history.last(), 0, 0);
+            history.removeLast();
+        }
     }
 
     private void checkLine() {
