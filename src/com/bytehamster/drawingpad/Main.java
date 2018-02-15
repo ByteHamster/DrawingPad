@@ -81,7 +81,7 @@ public class Main extends Application {
                 new Separator(Orientation.VERTICAL),
                 linesEnabledCheck);
 
-        Platform.runLater(() -> addCanvas(root));
+        addCanvas(root);
     }
 
     private Button rubberButton() {
@@ -117,10 +117,13 @@ public class Main extends Application {
     }
 
     private void addCanvas(BorderPane root) {
-        canvas = new Canvas(root.getWidth(), root.getHeight());
+        if (canvas == null) {
+            canvas = new Canvas(1000,1000);
+            root.setCenter(canvas);
+        }
         graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.setFill(Color.WHITE);
-        graphicsContext.fillRect(0,0, root.getWidth(), root.getHeight());
+        graphicsContext.fillRect(0,0, 1000, 1000);
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
 
@@ -170,7 +173,6 @@ public class Main extends Application {
                     graphicsContext.closePath();
                     checkLine();
                 });
-        root.setCenter(canvas);
     }
 
     private void undo() {
