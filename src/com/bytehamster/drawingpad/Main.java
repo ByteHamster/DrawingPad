@@ -3,16 +3,23 @@ package com.bytehamster.drawingpad;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Separator;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
@@ -26,13 +33,15 @@ public class Main extends Application {
     private FirstLastArrayList<Point> currentPath = new FirstLastArrayList<>();
     private GraphicsContext graphicsContext;
     private Canvas canvas;
+    private boolean linesEnabled = true;
+    private boolean isUsingRubber = false;
     private static File outputFile;
     private final KeyCombination KEY_UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
     private final KeyCombination KEY_SAVE = new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN);
 
     @Override
     public void start(Stage primaryStage) {
-        StackPane root = new StackPane();
+        BorderPane root = new BorderPane();
         Scene scene = new Scene(root, 800, 800);
         primaryStage.setTitle("DrawingPad");
         primaryStage.setScene(scene);
@@ -46,7 +55,53 @@ public class Main extends Application {
             }
         });
 
+        HBox buttons = new HBox();
+        buttons.setAlignment(Pos.CENTER_LEFT);
+        buttons.setPadding(new Insets(10));
+        buttons.setSpacing(5);
+        root.setTop(buttons);
+
+        Button undoButton = new Button("Undo");
+        undoButton.setOnAction(actionEvent -> undo());
+
+        CheckBox linesEnabledCheck = new CheckBox("Line detection");
+        linesEnabledCheck.setSelected(true);
+        linesEnabledCheck.setOnAction(actionEvent -> linesEnabled = linesEnabledCheck.isSelected());
+
+        buttons.getChildren().addAll(
+                undoButton,
+                rubberButton(),
+                new Separator(Orientation.VERTICAL),
+                colorButton("Black", Color.BLACK),
+                colorButton("Gray", Color.GRAY),
+                colorButton("Red", Color.RED),
+                colorButton("Green", Color.GREEN),
+                colorButton("Blue", Color.BLUE),
+                colorButton("Orange", Color.ORANGE),
+                new Separator(Orientation.VERTICAL),
+                linesEnabledCheck);
+
         Platform.runLater(() -> addCanvas(root));
+    }
+
+    private Button rubberButton() {
+        Button btn = new Button("Rubber");
+        btn.setOnAction(actionEvent -> {
+            graphicsContext.setStroke(Color.WHITE);
+            graphicsContext.setLineWidth(15);
+            isUsingRubber = true;
+        });
+        return btn;
+    }
+
+    private Button colorButton(String text, Color color) {
+        Button btn = new Button(text);
+        btn.setOnAction(actionEvent -> {
+            graphicsContext.setStroke(color);
+            graphicsContext.setLineWidth(3);
+            isUsingRubber = false;
+        });
+        return btn;
     }
 
     public static void main(String[] args) {
@@ -61,9 +116,11 @@ public class Main extends Application {
         launch(args);
     }
 
-    private void addCanvas(StackPane root) {
+    private void addCanvas(BorderPane root) {
         canvas = new Canvas(root.getWidth(), root.getHeight());
         graphicsContext = canvas.getGraphicsContext2D();
+        graphicsContext.setFill(Color.WHITE);
+        graphicsContext.fillRect(0,0, root.getWidth(), root.getHeight());
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
 
@@ -113,7 +170,7 @@ public class Main extends Application {
                     graphicsContext.closePath();
                     checkLine();
                 });
-        root.getChildren().add(canvas);
+        root.setCenter(canvas);
     }
 
     private void undo() {
@@ -124,6 +181,10 @@ public class Main extends Application {
     }
 
     private void checkLine() {
+        if (!linesEnabled || isUsingRubber) {
+            return;
+        }
+
         double dx = currentPath.last().x - currentPath.first().x;
         double dy = currentPath.last().y - currentPath.first().y;
         double length = Math.sqrt(dx * dx + dy * dy);
