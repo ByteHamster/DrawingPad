@@ -12,6 +12,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Separator;
+import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -36,6 +37,7 @@ public class Main extends Application {
     private boolean linesEnabled = true;
     private boolean isUsingRubber = false;
     private static File outputFile;
+    private static File inputFile;
     private final KeyCombination KEY_UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
     private final KeyCombination KEY_SAVE = new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN);
 
@@ -105,27 +107,56 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) {
-        if (args.length != 1) {
+        if (args.length != 1 && args.length != 3) {
             System.out.println("Expected the path as command line argument.");
             System.out.println("Using drawingPad.png as a fallback.");
             outputFile = new File("drawingPad.png");
         } else {
-            outputFile = new File(args[0]);
+            boolean nextIsInput = false;
+            for (String arg : args) {
+                if (nextIsInput) {
+                    inputFile = new File(arg);
+                    nextIsInput = false;
+                } else if (arg.equals("-i")) {
+                    nextIsInput = true;
+                } else {
+                    outputFile = new File(arg);
+                }
+            }
         }
 
         launch(args);
     }
 
     private void addCanvas(BorderPane root) {
+        double width = 1000;
+        double height = 1000;
+        Image inputImage = null;
+
+        if (inputFile != null) {
+            try {
+                inputImage = new Image(inputFile.toURI().toString());
+                width = inputImage.getWidth();
+                height = inputImage.getHeight();
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            }
+        }
+
         if (canvas == null) {
-            canvas = new Canvas(1000,1000);
+            canvas = new Canvas(width, height);
             root.setCenter(canvas);
         }
+
         graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.setFill(Color.WHITE);
-        graphicsContext.fillRect(0,0, 1000, 1000);
+        graphicsContext.fillRect(0,0, width, height);
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
+
+        if (inputImage != null) {
+            graphicsContext.drawImage(inputImage,0,0);
+        }
 
         canvas.addEventHandler(MouseEvent.MOUSE_PRESSED,
                 event -> {
