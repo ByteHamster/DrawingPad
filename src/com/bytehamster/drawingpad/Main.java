@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class Main extends Application {
+    private static final double INPUT_PADDING = 20;
     private FirstLastArrayList<WritableImage> history = new FirstLastArrayList<>();
     private FirstLastArrayList<Point> currentPath = new FirstLastArrayList<>();
     private GraphicsContext graphicsContext;
@@ -136,8 +137,8 @@ public class Main extends Application {
         if (inputFile != null) {
             try {
                 inputImage = new Image(inputFile.toURI().toString());
-                width = inputImage.getWidth();
-                height = inputImage.getHeight();
+                width = inputImage.getWidth() + 2 * INPUT_PADDING;
+                height = inputImage.getHeight() + 2 * INPUT_PADDING;
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
             }
@@ -150,12 +151,12 @@ public class Main extends Application {
 
         graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.setFill(Color.WHITE);
-        graphicsContext.fillRect(0,0, width, height);
+        graphicsContext.fillRect(0, 0, width, height);
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
 
         if (inputImage != null) {
-            graphicsContext.drawImage(inputImage,0,0);
+            graphicsContext.drawImage(inputImage, INPUT_PADDING, INPUT_PADDING);
         }
 
         canvas.addEventHandler(MouseEvent.MOUSE_PRESSED,
