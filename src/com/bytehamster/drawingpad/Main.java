@@ -11,6 +11,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
@@ -84,7 +85,11 @@ public class Main extends Application {
                 new Separator(Orientation.VERTICAL),
                 linesEnabledCheck);
 
-        addCanvas(root);
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        root.setCenter(scrollPane);
+        addCanvas(scrollPane);
     }
 
     private Button rubberButton() {
@@ -129,7 +134,7 @@ public class Main extends Application {
         launch(args);
     }
 
-    private void addCanvas(BorderPane root) {
+    private void addCanvas(ScrollPane root) {
         double width = 1000;
         double height = 1000;
         Image inputImage = null;
@@ -146,7 +151,7 @@ public class Main extends Application {
 
         if (canvas == null) {
             canvas = new Canvas(width, height);
-            root.setCenter(canvas);
+            root.setContent(canvas);
         }
 
         graphicsContext = canvas.getGraphicsContext2D();
