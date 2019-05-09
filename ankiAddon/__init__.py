@@ -6,7 +6,7 @@ from subprocess import call
 import re, os, shutil, time
 
 dp_mypath = os.path.dirname(os.path.abspath(__file__))
-dp_selected = "window.getSelection().getRangeAt(0).startContainer.parentNode.querySelector('img')"
+dp_selected = "window.getSelection().getRangeAt(0).startContainer.childNodes[window.getSelection().getRangeAt(0).startOffset]"
 dp_fname = None;
 dp_drawing = None;
 dp_editor = None;
