@@ -1,8 +1,8 @@
 package com.bytehamster.drawingpad;
 
 public class Point {
-    double x, y;
-    Point(double x, double y) {
+    int x, y;
+    Point(int x, int y) {
         this.x = x;
         this.y = y;
     }

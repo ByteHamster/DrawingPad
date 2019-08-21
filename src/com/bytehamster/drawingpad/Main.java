@@ -1,220 +1,230 @@
 package com.bytehamster.drawingpad;
 
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.embed.swing.SwingFXUtils;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Separator;
-import javafx.scene.image.Image;
-import javafx.scene.image.WritableImage;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.paint.Color;
-import javafx.stage.Stage;
-
 import javax.imageio.ImageIO;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.KeyboardFocusManager;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-public class Main extends Application {
-    private static final double INPUT_PADDING = 20;
-    private FirstLastArrayList<WritableImage> history = new FirstLastArrayList<>();
+public class Main {
+    private static final int INPUT_PADDING = 20;
+    private FirstLastArrayList<Image> history = new FirstLastArrayList<>();
     private FirstLastArrayList<Point> currentPath = new FirstLastArrayList<>();
-    private GraphicsContext graphicsContext;
-    private Canvas canvas;
+    private Graphics2D graphicsContext;
+    private JCanvas canvas;
     private boolean linesEnabled = true;
     private boolean isUsingRubber = false;
-    private static File outputFile;
-    private static File inputFile;
-    private final KeyCombination KEY_UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
-    private final KeyCombination KEY_SAVE = new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN);
+    private File outputFile;
+    private File inputFile;
 
-    @Override
-    public void start(Stage primaryStage) {
-        BorderPane root = new BorderPane();
-        Scene scene = new Scene(root, 800, 800);
-        primaryStage.setTitle("DrawingPad");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+    public static void main(String[] args) {
+        Main main = new Main();
+        if (args.length != 1 && args.length != 3) {
+            System.out.println("Expected the path as command line argument.");
+            System.out.println("Using drawingPad.png as a fallback.");
+            main.outputFile = new File("drawingPad.png");
+        } else {
+            boolean nextIsInput = false;
+            for (String arg : args) {
+                if (nextIsInput) {
+                    main.inputFile = new File(arg);
+                    nextIsInput = false;
+                } else if (arg.equals("-i")) {
+                    nextIsInput = true;
+                } else {
+                    main.outputFile = new File(arg);
+                }
+            }
+        }
 
-        scene.setOnKeyPressed(keyEvent -> {
-            if (KEY_UNDO.match(keyEvent)) {
-                undo();
-            } else if (KEY_SAVE.match(keyEvent)) {
-                Platform.exit();
+        main.launch();
+    }
+
+    private void launch() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
+        }
+
+        JFrame frame = new JFrame();
+        frame.setTitle("DrawingPad");
+        frame.setSize(800, 800);
+        frame.setResizable(true);
+
+        KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        manager.addKeyEventDispatcher(keyEvent -> {
+            if ((keyEvent.getModifiers() & ActionEvent.CTRL_MASK) != 0 && keyEvent.getID() == KeyEvent.KEY_PRESSED) {
+                switch (keyEvent.getKeyCode()) {
+                    case KeyEvent.VK_Z:
+                        undo();
+                        break;
+                    case KeyEvent.VK_S:
+                        exit();
+                        break;
+                }
+            }
+            return true;
+        });
+
+        frame.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                exit();
             }
         });
 
-        HBox buttons = new HBox();
-        buttons.setAlignment(Pos.CENTER_LEFT);
-        buttons.setPadding(new Insets(10));
-        buttons.setSpacing(5);
-        root.setTop(buttons);
+        Box layout = Box.createVerticalBox();
 
-        Button undoButton = new Button("Undo");
-        undoButton.setOnAction(actionEvent -> undo());
+        JButton undoButton = new JButton("Undo");
+        undoButton.setFocusPainted(false);
+        undoButton.addActionListener(actionEvent -> undo());
 
-        CheckBox linesEnabledCheck = new CheckBox("Line detection");
+        JCheckBox linesEnabledCheck = new JCheckBox("Line detection");
+        linesEnabledCheck.setFocusPainted(false);
         linesEnabledCheck.setSelected(true);
-        linesEnabledCheck.setOnAction(actionEvent -> linesEnabled = linesEnabledCheck.isSelected());
+        linesEnabledCheck.addItemListener(actionEvent -> linesEnabled = linesEnabledCheck.isSelected());
 
-        buttons.getChildren().addAll(
-                undoButton,
-                rubberButton(),
-                new Separator(Orientation.VERTICAL),
-                colorButton("Black", Color.BLACK),
-                colorButton("Gray", Color.GRAY),
-                colorButton("Red", Color.RED),
-                colorButton("Green", Color.GREEN),
-                colorButton("Blue", Color.BLUE),
-                colorButton("Orange", Color.ORANGE),
-                new Separator(Orientation.VERTICAL),
-                linesEnabledCheck);
+        Box buttons = Box.createHorizontalBox();
+        buttons.add(bigPadding());
+        buttons.add(undoButton);
+        buttons.add(smallPadding());
+        buttons.add(rubberButton());
+        buttons.add(bigPadding());
+        buttons.add(bigPadding());
+        buttons.add(colorButton("Black", Color.BLACK));
+        buttons.add(smallPadding());
+        buttons.add(colorButton("Gray", Color.GRAY));
+        buttons.add(smallPadding());
+        buttons.add(colorButton("Red", Color.RED));
+        buttons.add(smallPadding());
+        buttons.add(colorButton("Green", Color.GREEN));
+        buttons.add(smallPadding());
+        buttons.add(colorButton("Blue", Color.BLUE));
+        buttons.add(smallPadding());
+        buttons.add(colorButton("Orange", Color.ORANGE));
+        buttons.add(bigPadding());
+        buttons.add(bigPadding());
+        buttons.add(Box.createHorizontalGlue());
+        buttons.add(linesEnabledCheck);
+        buttons.add(bigPadding());
 
-        ScrollPane scrollPane = new ScrollPane();
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        root.setCenter(scrollPane);
-        addCanvas(scrollPane);
+        layout.add(bigPadding());
+        layout.add(buttons);
+        layout.add(bigPadding());
+        layout.add(new JScrollPane(createCanvas()));
+
+        frame.add(layout);
+
+        frame.setVisible(true);
     }
 
-    private Button rubberButton() {
-        Button btn = new Button("Rubber");
-        btn.setOnAction(actionEvent -> {
-            graphicsContext.setStroke(Color.WHITE);
-            graphicsContext.setLineWidth(15);
+    private Component smallPadding() {
+        return Box.createRigidArea(new Dimension(5, 5));
+    }
+
+    private Component bigPadding() {
+        return Box.createRigidArea(new Dimension(10, 10));
+    }
+
+    private JButton rubberButton() {
+        JButton btn = new JButton("Rubber");
+        btn.setFocusPainted(false);
+        btn.addActionListener(actionEvent -> {
+            graphicsContext.setColor(Color.WHITE);
+            graphicsContext.setStroke(new BasicStroke(15));
             isUsingRubber = true;
         });
         return btn;
     }
 
-    private Button colorButton(String text, Color color) {
-        Button btn = new Button(text);
-        btn.setOnAction(actionEvent -> {
-            graphicsContext.setStroke(color);
-            graphicsContext.setLineWidth(3);
+    private JButton colorButton(String text, Color color) {
+        JButton btn = new JButton(text);
+        btn.setFocusPainted(false);
+        btn.addActionListener(actionEvent -> {
+            graphicsContext.setColor(color);
+            graphicsContext.setStroke(new BasicStroke(3));
             isUsingRubber = false;
         });
         return btn;
     }
 
-    public static void main(String[] args) {
-        if (args.length != 1 && args.length != 3) {
-            System.out.println("Expected the path as command line argument.");
-            System.out.println("Using drawingPad.png as a fallback.");
-            outputFile = new File("drawingPad.png");
-        } else {
-            boolean nextIsInput = false;
-            for (String arg : args) {
-                if (nextIsInput) {
-                    inputFile = new File(arg);
-                    nextIsInput = false;
-                } else if (arg.equals("-i")) {
-                    nextIsInput = true;
-                } else {
-                    outputFile = new File(arg);
-                }
-            }
-        }
+    private JCanvas createCanvas() {
+        int width = 1000;
+        int height = 1000;
+        BufferedImage inputImage = null;
 
-        launch(args);
-    }
-
-    private void addCanvas(ScrollPane root) {
-        double width = 1000;
-        double height = 1000;
-        Image inputImage = null;
+        canvas = new JCanvas(width, height);
+        graphicsContext = canvas.getGraphics();
 
         if (inputFile != null) {
             try {
-                inputImage = new Image(inputFile.toURI().toString());
+                inputImage = ImageIO.read(inputFile);
                 width = inputImage.getWidth() + 2 * INPUT_PADDING;
                 height = inputImage.getHeight() + 2 * INPUT_PADDING;
-            } catch (IllegalArgumentException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        if (canvas == null) {
-            canvas = new Canvas(width, height);
-            root.setContent(canvas);
-        }
-
-        graphicsContext = canvas.getGraphicsContext2D();
-        graphicsContext.setFill(Color.WHITE);
+        graphicsContext.setColor(Color.WHITE);
         graphicsContext.fillRect(0, 0, width, height);
-        graphicsContext.setStroke(Color.BLACK);
-        graphicsContext.setLineWidth(3);
+        graphicsContext.setColor(Color.BLACK);
+        graphicsContext.setStroke(new BasicStroke(3));
 
         if (inputImage != null) {
-            graphicsContext.drawImage(inputImage, INPUT_PADDING, INPUT_PADDING);
+            graphicsContext.drawImage(inputImage, INPUT_PADDING, INPUT_PADDING, null);
         }
 
-        canvas.addEventHandler(MouseEvent.MOUSE_PRESSED,
-                event -> {
-                    currentPath.clear();
-                    currentPath.add(new Point(event.getX(), event.getY()));
-                    if (event.getButton() == MouseButton.MIDDLE || event.getButton() == MouseButton.SECONDARY) {
-                        return;
-                    }
+        canvas.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent event) {
+                currentPath.clear();
+                currentPath.add(new Point(event.getX(), event.getY()));
+                history.add(canvas.snapshot());
+            }
 
-                    history.add(canvas.snapshot(null, null));
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                currentPath.add(new Point(event.getX(), event.getY()));
+                checkLine();
+            }
+        });
+        canvas.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent event) {
+                Point previous = currentPath.last();
+                currentPath.add(new Point(event.getX(), event.getY()));
+                graphicsContext.drawLine(previous.x, previous.y, event.getX(), event.getY());
+                canvas.getParent().repaint();
+            }
+        });
 
-                    graphicsContext.beginPath();
-                    graphicsContext.moveTo(event.getX(), event.getY());
-                    graphicsContext.stroke();
-                });
-
-        canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED,
-                event -> {
-                    if (event.getButton() == MouseButton.MIDDLE || event.getButton() == MouseButton.SECONDARY) {
-                        return;
-                    }
-
-                    graphicsContext.lineTo(event.getX(), event.getY());
-                    graphicsContext.stroke();
-                    graphicsContext.closePath();
-                    graphicsContext.beginPath();
-                    graphicsContext.moveTo(event.getX(), event.getY());
-                    currentPath.add(new Point(event.getX(), event.getY()));
-                });
-
-        canvas.addEventHandler(MouseEvent.MOUSE_RELEASED,
-                event -> {
-                    currentPath.add(new Point(event.getX(), event.getY()));
-
-                    if (event.getButton() == MouseButton.MIDDLE) {
-                        return;
-                    } else if (event.getButton() == MouseButton.SECONDARY) {
-                        //if (!currentPath.first().equals(currentPath.last())) {
-                        //    return;
-                        //}
-                        undo();
-                        return;
-                    }
-
-                    graphicsContext.closePath();
-                    checkLine();
-                });
+        return canvas;
     }
 
     private void undo() {
         if (!history.isEmpty()) {
-            graphicsContext.drawImage(history.last(), 0, 0);
+            graphicsContext.drawImage(history.last(), 0, 0, null);
+            canvas.getParent().repaint();
             history.removeLast();
         }
     }
@@ -238,7 +248,6 @@ public class Main extends Application {
             double c = currentPath.first().y - m * currentPath.first().x;
             for (Point p : currentPath) {
                 double perfectLine = m * p.x + c;
-                //graphicsContext.fillOval(p.x, perfectLine, 8, 8);
                 if (Math.abs(p.y - perfectLine) > maxDifference) {
                     return;
                 }
@@ -249,33 +258,24 @@ public class Main extends Application {
             double c = currentPath.first().x - m * currentPath.first().y;
             for (Point p : currentPath) {
                 double perfectLine = m * p.y + c;
-                //graphicsContext.fillOval(perfectLine, p.y, 8, 8);
                 if (Math.abs(p.x - perfectLine) > maxDifference) {
                     return;
                 }
             }
         }
 
-        graphicsContext.drawImage(history.last(), 0, 0);
-
-        graphicsContext.save();
-        graphicsContext.setLineWidth(3.5);
-        graphicsContext.beginPath();
-        graphicsContext.moveTo(currentPath.first().x, currentPath.first().y);
-        graphicsContext.lineTo(currentPath.last().x, currentPath.last().y);
-        graphicsContext.stroke();
-        graphicsContext.closePath();
-        graphicsContext.restore();
+        graphicsContext.drawImage(history.last(), 0, 0, null);
+        graphicsContext.drawLine(currentPath.first().x, currentPath.first().y, currentPath.last().x, currentPath.last().y);
+        canvas.getParent().repaint();
     }
 
-    @Override
-    public void stop() {
+    private void exit() {
         try {
-            BufferedImage image = SwingFXUtils.fromFXImage(canvas.snapshot(null, null), null);
-            image = ImageUtils.trim(image);
+            BufferedImage image = ImageUtils.trim(canvas.snapshot());
             ImageIO.write(image, "png", outputFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.exit(0);
     }
 }
