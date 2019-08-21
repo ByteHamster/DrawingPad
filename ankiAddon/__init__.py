@@ -39,7 +39,7 @@ def getSelectionCallback(imageSrc):
             dp_editor.web.eval(dp_selected + ".src=\"" + dp_fname + "\";")
         os.remove(dp_drawing)
     else:
-        dp_editor.web.eval("alert(\"Unable to start DrawingPad. Do you have JavaFx installed?\", \"\");")
+        dp_editor.web.eval("alert(\"Unable to start DrawingPad. Do you have Java installed?\", \"\");")
 
 def addMyButton(buttons, editor):
     editor._links['drawingPad'] = drawingPad
