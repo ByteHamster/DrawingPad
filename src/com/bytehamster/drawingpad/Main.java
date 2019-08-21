@@ -172,9 +172,6 @@ public class Main {
         int height = 1000;
         BufferedImage inputImage = null;
 
-        canvas = new JCanvas(width, height);
-        graphicsContext = canvas.getGraphics();
-
         if (inputFile != null) {
             try {
                 inputImage = ImageIO.read(inputFile);
@@ -184,6 +181,9 @@ public class Main {
                 e.printStackTrace();
             }
         }
+
+        canvas = new JCanvas(width, height);
+        graphicsContext = canvas.getGraphics();
 
         graphicsContext.setColor(Color.WHITE);
         graphicsContext.fillRect(0, 0, width, height);
