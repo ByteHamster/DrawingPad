@@ -24,11 +24,11 @@ def drawingPad(ed):
 def getSelectionCallback(imageSrc):
 
     if imageSrc == None:
-        call(["java", "-jar", os.path.join(dp_mypath, "drawingPad.jar"), dp_drawing])
+        call(["java", "-Xmx1000m", "-jar", os.path.join(dp_mypath, "drawingPad.jar"), dp_drawing])
     else:
         imageSrc = imageSrc.split(os.sep).pop()
         mdir = mw.col.media.dir()
-        call(["java", "-jar", os.path.join(dp_mypath, "drawingPad.jar"), dp_drawing, "-i", os.path.join(mdir, imageSrc)])
+        call(["java", "-Xmx1000m", "-jar", os.path.join(dp_mypath, "drawingPad.jar"), dp_drawing, "-i", os.path.join(mdir, imageSrc)])
 
     if os.path.exists(dp_drawing):
         mdir = mw.col.media.dir()
